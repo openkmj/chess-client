@@ -3,6 +3,7 @@ import "./App.css";
 import Chessboard from "chessboardjsx";
 import { Chess } from "chess.js";
 import { useState } from "react";
+import axios from "axios";
 
 function App() {
   const [game] = useState(new Chess());
@@ -11,7 +12,7 @@ function App() {
   const [selectedSquare, setSelectedSquare] = useState("");
   const [squareStyles, setSquareStyles] = useState({});
 
-  const onSquareClick = (square) => {
+  const onSquareClick = async (square) => {
     if (selectedSquare === "") {
       const moves = game.moves({ square: square, verbose: true });
       if (moves.length === 0) return;
@@ -31,16 +32,40 @@ function App() {
       setSquareStyles(squareStyling(""));
       return;
     }
-
-    game.move({
-      from: selectedSquare,
-      to: square,
-      promotion: "q",
-    });
+    console.log(selectedSquare, square);
+    if (
+      game.get(selectedSquare).type === "p" &&
+      (square[1] === "1" || square[1] === "8")
+    ) {
+      const piece = prompt("Enter piece name: (q, r, n, b)");
+      game.move({
+        from: selectedSquare,
+        to: square,
+        promotion: piece,
+      });
+    } else game.move(`${selectedSquare}${square}`);
     setFen(game.fen());
     setHistory(game.history({ verbose: true }));
     setSelectedSquare("");
-    setSquareStyles(squareStyling(""));
+    highlightSquare(square, [selectedSquare]);
+    game.isGameOver() && alert("Game Over");
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const res = await axios.post("http://localhost:8099/move", {
+        fen: game.fen(),
+      });
+      console.log(res.data);
+      game.move(res.data.next_move);
+      setFen(game.fen());
+      setHistory(game.history({ verbose: true }));
+      highlightSquare(res.data.next_move.slice(0, 2), [
+        res.data.next_move.slice(2),
+      ]);
+      game.isGameOver() && alert("Game Over");
+    } catch {
+      console.log("Error");
+    }
   };
   const highlightSquare = (sourceSquare, squaresToHighlight) => {
     const highlightStyles = squaresToHighlight.reduce(
@@ -54,7 +79,7 @@ function App() {
       squareStyling(sourceSquare)
     );
     setSquareStyles((prevStyles) => ({
-      ...prevStyles,
+      // ...prevStyles,
       ...highlightStyles,
     }));
   };
