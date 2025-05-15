@@ -2,8 +2,9 @@ import Logo from "./assets/capy-chess.png";
 import "./App.css";
 import Chessboard from "chessboardjsx";
 import { Chess } from "chess.js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
+import { evaluate } from "./model";
 
 function App() {
   const [game] = useState(new Chess());
@@ -11,6 +12,14 @@ function App() {
   const [history, setHistory] = useState([]);
   const [selectedSquare, setSelectedSquare] = useState("");
   const [squareStyles, setSquareStyles] = useState({});
+
+  useEffect(() => {
+    if (fen !== "start") {
+      evaluate(fen).then((res) => {
+        console.log(res);
+      });
+    }
+  }, [fen]);
 
   const onSquareClick = async (square) => {
     if (selectedSquare === "") {
